@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Página Inicial{% endblock %}
+
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+  <div class="row">
+    <div class="col-lg-12 mb-4 order-0">
+      <div class="card">
+        <div class="d-flex align-items-end row">
+          <div class="card-body">
+
+
+
+            <div class="container">
+              <a href="send" class="btn btn-primary" style="float: right;">Envio</a>
+              <h1>📊 Dashboard de Envios</h1>
+              
+              
+
+              <div class="stats">
+                <div class="stat-card">
+                  <h2>Total de Envios</h2>
+                  <h3>{{ total_envios }}</h3>
+                </div>
+                <div class="stat-card">
+                  <h2>Top 5 Usuários</h2>
+                  <ul>
+                    {% for user in top_usuarios %}
+                    <li><strong>{{ user.receiver_id }}</strong>: {{ user.count }} envios</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </div>
+
+              <div class="card">
+                <h2>Últimos 10 Envios</h2>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Receiver ID</th>
+                      <th>Mensagem</th>
+                      <th>Tipo de Envio</th>
+                      <th>Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for envio in ultimos_envios %}
+                    <tr>
+                      <td>{{ envio.receiver_id }}</td>
+                      <td>{{ envio.message }}</td>
+                      <td>{{ envio.tipo_envio }}</td>
+                      <td>{{ envio.timestamp }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="card">
+                <h2>Envios por Tipo</h2>
+                <canvas id="tipoChart"></canvas>
+              </div>
+
+              <div class="card">
+                <h2>Envios por Dia (Últimos 7 dias)</h2>
+                <canvas id="diaChart"></canvas>
+              </div>
+
+              <div class="card">
+                <h2>Média de Envios por Hora</h2>
+                <canvas id="horaChart"></canvas>
+              </div>
+            </div>
+
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+
+  <script>
+    const porTipoEnvio = {{ por_tipo_envio | tojson }};
+    const enviosPorDia = {{ envios_por_dia | tojson }};
+    const mediaPorHora = {{ media_por_hora | tojson }};
+
+    const tipoCtx = document.getElementById('tipoChart').getContext('2d');
+    new Chart(tipoCtx, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(porTipoEnvio),
+        datasets: [{
+          label: 'Envios',
+          data: Object.values(porTipoEnvio),
+          backgroundColor: '#4e73df'
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: { enabled: true }
+        }
+      }
+    });
+
+    const diaCtx = document.getElementById('diaChart').getContext('2d');
+    new Chart(diaCtx, {
+      type: 'line',
+      data: {
+        labels: Object.keys(enviosPorDia),
+        datasets: [{
+          label: 'Envios por Dia',
+          data: Object.values(enviosPorDia),
+          fill: true,
+          borderColor: '#1cc88a',
+          backgroundColor: 'rgba(28, 200, 138, 0.2)',
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          tooltip: { enabled: true }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+
+    const horaCtx = document.getElementById('horaChart').getContext('2d');
+    new Chart(horaCtx, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(mediaPorHora),
+        datasets: [{
+          label: 'Média de Envios',
+          data: Object.values(mediaPorHora),
+          backgroundColor: '#36b9cc'
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          tooltip: { enabled: true }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+
+    
+  </script>
+
+  {% endblock %}

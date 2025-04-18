@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}Página Inicial{% endblock %}
+
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="row">
+        <div class="col-lg-8 mb-4 order-0">
+            <div class="card">
+                <div class="d-flex align-items-end row">
+                    <div class="card-body">
+
+                        <div class="header">
+                            <h3 style="margin:0;">📤 Envio de Mensagens</h3>
+
+
+                            <a href="dashboard" class="btn btn-primary">Painel Administrativo</a>
+                        </div>
+
+                        <div class="tabs">
+                            <button class="tab active" onclick="switchTab('own')">Meus Contatos</button>
+                            <button class="tab" onclick="switchTab('other')">Outro Usuário</button>
+                        </div>
+
+                        <form id="form" onsubmit="event.preventDefault(); sendMessage()">
+
+                            <div id="otherTab" class="form-group" style="display:none;">
+                                <label>Usuário alvo:</label>
+                                <input type="text" id="targetUser" class="form-control" placeholder="@username">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Tipo de envio:</label>
+                                <select id="tipoEnvio" class="form-control">
+                                    <option value="ambos">Seguidores e Seguindo</option>
+                                    <option value="seguidores">Apenas Seguidores</option>
+                                    <option value="seguindo">Apenas Seguindo</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Mensagem:</label>
+                                <textarea id="mensagem" class="form-control" rows="3" required
+                                    placeholder="Digite sua mensagem..."></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Mídia (opcional):</label>
+                                <input type="file" id="mediaFile" class="form-control"
+                                    accept=".jpg,.jpeg,.png,.mp4,.mov">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Quantidade de envios (1-1000):</label>
+                                <div class="range-group">
+                                    <input type="range" id="quantidade" min="1" max="1000" value="100">
+                                    <span class="range-value" id="quantidadeValue">100</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Intervalo entre envios (3-10 min):</label>
+                                <div class="range-group">
+                                    <input type="range" id="intervalo" min="3" max="10" value="5">
+                                    <span class="range-value" id="intervaloValue">5 min</span>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary" type="submit">🚀 Iniciar Envio</button>
+
+                            <button type="button" id="cancelBtn" class="btn btn-danger"
+                                style="display: none; background: #ff9800;" onclick="cancelSending()">Cancelar</button>
+
+                            <div class="loader" id="loader" style="display: none;"></div>
+
+                            <div class="progress" id="progress" style="display: none;">
+                                <progress id="progressBar" value="0" max="100"></progress>
+                            </div>
+
+                        </form>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-4 order-1">
+            <div class="row">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-title d-flex align-items-start justify-content-between">
+                            <div class="avatar flex-shrink-0">
+                                <img src="../assets/img/icons/unicons/chart-success.png" alt="chart success"
+                                    class="rounded" />
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn p-0" type="button" id="cardOpt3" data-bs-toggle="dropdown"
+                                    aria-haspopup="true" aria-expanded="false">
+                                    <i class="bx bx-dots-vertical-rounded"></i>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="cardOpt3">
+                                    <a class="dropdown-item" href="javascript:void(0);">View
+                                        More</a>
+                                    <a class="dropdown-item" href="javascript:void(0);">Delete</a>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="fw-semibold d-block mb-1">Profit</span>
+                        <h3 class="card-title mb-2">$12,628</h3>
+                        <small class="text-success fw-semibold"><i class="bx bx-up-arrow-alt"></i> +72.80%</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+    let abortSending = false;
+    let controller = null;
+
+    function switchTab(tab) {
+        document.getElementById("loader").style.display = "none";
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        const otherTab = document.getElementById('otherTab');
+
+        if (tab === 'own') {
+            document.querySelectorAll('.tab')[0].classList.add('active');
+            otherTab.style.display = 'none';
+        } else {
+            document.querySelectorAll('.tab')[1].classList.add('active');
+            otherTab.style.display = 'block';
+        }
+    }
+
+    document.getElementById('quantidade').addEventListener('input', function () {
+        document.getElementById('quantidadeValue').textContent = this.value;
+    });
+
+    document.getElementById('intervalo').addEventListener('input', function () {
+        document.getElementById('intervaloValue').textContent = this.value + ' min';
+    });
+
+    async function sendMessage() {
+        abortSending = false;
+        document.getElementById("loader").style.display = "block";
+        document.getElementById("cancelBtn").style.display = "block";
+        document.getElementById("progress").style.display = "block";
+        document.getElementById("progressBar").value = 0;
+
+        const mediaFile = document.getElementById('mediaFile').files[0];
+        const message = document.getElementById('mensagem').value;
+        const tipoEnvio = document.getElementById('tipoEnvio').value;
+        const numEnvios = parseInt(document.getElementById('quantidade').value);
+        const intervalo = parseInt(document.getElementById('intervalo').value) * 60000;
+        const targetUser = document.getElementById('targetUser').value;
+
+        let enviado = 0;
+
+        for (let i = 0; i < numEnvios; i++) {
+            if (abortSending) {
+                alert("Envio cancelado.");
+                break;
+            }
+
+            const formData = new FormData();
+            if (mediaFile) formData.append('media_file', mediaFile);
+            formData.append('message', message);
+            formData.append('tipo_envio', tipoEnvio);
+            formData.append('num_amigos', numEnvios);
+            formData.append('tempo_envio', intervalo / 60000);
+            if (targetUser) formData.append('target_user', targetUser);
+
+            controller = new AbortController();
+            const signal = controller.signal;
+
+            try {
+                await fetch('/send-message', { method: 'POST', body: formData, signal });
+            } catch (error) {
+                if (abortSending) break;
+            }
+
+            enviado++;
+            atualizarProgresso(enviado, numEnvios);
+            if (i < numEnvios - 1) await new Promise(r => setTimeout(r, intervalo));
+        }
+
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("cancelBtn").style.display = "none";
+        if (!abortSending) alert(`Envio finalizado: ${enviado} mensagens.`);
+    }
+
+    function cancelSending() {
+        abortSending = true;
+        if (controller) controller.abort();
+    }
+
+    function atualizarProgresso(atual, total) {
+        const percent = (atual / total) * 100;
+        document.getElementById("progressBar").value = percent;
+    }
+
+
+
+
+    // Verifica se o tema foi salvo no localStorage ao carregar a página
+    window.addEventListener('load', () => {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('themeToggle').textContent = '🌞'; // Ícone de sol para indicar modo claro
+        } else {
+            document.body.classList.remove('dark-mode');
+            document.getElementById('themeToggle').textContent = '🌙'; // Ícone de lua para indicar modo escuro
+        }
+    });
+
+
+</script>
+{% endblock %}
